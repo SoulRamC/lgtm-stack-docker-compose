@@ -1,0 +1,7 @@
+target: all
+multitenancy_enabled: false
+
+blocks_storage:
+  backend: filesystem
+  filesystem:
+    dir: /var/mimir/data

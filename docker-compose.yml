@@ -1,0 +1,106 @@
+version: "3.8"
+
+services:
+  grafana:
+    image: grafana/grafana:11.5.1
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    networks:
+      - lgtm-net
+    restart: unless-stopped
+    depends_on:
+      - loki
+      - tempo
+      # - mimir
+      - prometheus
+
+  loki:
+    image: grafana/loki:3.4.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/var/loki
+      - ./config/loki/loki-config.yaml:/etc/loki/loki-config.yaml
+    command: -config.file=/etc/loki/loki-config.yaml
+    user: "root"
+    networks:
+      - lgtm-net
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:2.7.1
+    container_name: tempo
+    ports:
+      - "3200:3200"
+      - "9095:9095"
+    user: "root"
+    volumes:
+      - tempo_data:/var/tempo
+      - ./config/tempo/tempo-config.yaml:/etc/tempo/tempo-config.yaml
+    command: -config.file=/etc/tempo/tempo-config.yaml
+    networks:
+      - lgtm-net
+    restart: unless-stopped
+
+  # mimir:
+  #   image: grafana/mimir:latest
+  #   container_name: mimir
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - mimir_data:/var/mimir
+  #     - ./config/mimir/mimir-config.yaml:/etc/mimir/mimir-config.yaml
+  #   command: -config.file=/etc/mimir/mimir-config.yaml -target=all
+  #   networks:
+  #     - lgtm-net
+  #   restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.2.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./config/prometheus/prometheus-config.yaml:/etc/prometheus/prometheus.yaml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yaml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    networks:
+      - lgtm-net
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.119.0
+    container_name: otel-collector
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "14268:14268" # Jaeger HTTP
+    volumes:
+      - ./config/otel/otel-config.yaml:/etc/otel/config.yaml
+    command: --config=/etc/otel/config.yaml
+    networks:
+      - lgtm-net
+    restart: unless-stopped
+
+volumes:
+  grafana_data:
+  loki_data:
+  tempo_data:
+  # mimir_data:
+  prometheus_data:
+
+networks:
+  lgtm-net:
+    driver: bridge
