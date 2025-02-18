@@ -4,7 +4,7 @@ datasources:
   - name: Prometheus
     type: prometheus
     uid: prometheus
-    url: http://localhost:9090
+    url: http://prometheus:9090
     jsonData:
       timeInterval: 60s
       exemplarTraceIdDestinations:
@@ -15,7 +15,7 @@ datasources:
   - name: Tempo
     type: tempo
     uid: tempo
-    url: http://localhost:3200
+    url: http://tempo:3200
     jsonData:
       tracesToLogsV2:
         customQuery: true
